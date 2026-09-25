@@ -1,0 +1,69 @@
+#!/usr/sbin/nft -f
+#
+# Ruleset de referência para o HOST que roda o docker-compose.
+# Aplica no HOST (não dentro dos containers), operando sobre as bridges
+# criadas pelo compose. Ajuste os nomes de interface (br-xxxx) conforme
+# `docker network inspect` mostrar no seu ambiente antes de carregar:
+#   docker network inspect hw-lab_net_dmz -f '{{ .Id }}'  -> interface br-<12 chars do Id>
+#
+# Carregar:   sudo nft -f nftables/ruleset.nft
+# Verificar:  sudo nft list ruleset
+
+define NET_VPN = 172.28.40.0/24
+define NET_DMZ = 172.28.10.0/24
+define NET_APP = 172.28.20.0/24
+define NET_DB  = 172.28.30.0/24
+
+define WAF_IP     = 172.28.20.20   # pé do container waf dentro da net_app
+define DVWA_IP    = 172.28.20.30
+define DB_IP      = 172.28.30.40
+define BASTION_VPN = 172.28.40.10
+define BASTION_DMZ = 172.28.10.10
+define BASTION_APP = 172.28.20.10
+define BASTION_DB  = 172.28.30.10
+
+table inet filter {
+
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        ct state established,related accept
+        iif "lo" accept
+
+        # Wireguard precisa do próprio host aceitar a porta UDP do túnel
+        udp dport 51820 accept
+
+        # Loga tudo que cair aqui (deny) para depuração/evidência
+        log prefix "nft-INPUT-DROP: " counter drop
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        ct state established,related accept
+
+        # --- Regra 1: DMZ(WAF) -> APP, somente porta da aplicação (80) ---
+        ip saddr $NET_DMZ ip daddr $DVWA_IP tcp dport 80 accept comment "WAF -> DVWA:80"
+
+        # --- Regra 2: APP -> DB, somente porta do banco (3306) ---
+        ip saddr $NET_APP ip daddr $DB_IP tcp dport 3306 accept comment "DVWA -> MariaDB:3306"
+
+        # --- Regra 3: Admin (VPN) -> hosts, somente SSH/gestão (22) ---
+        ip saddr $NET_VPN ip daddr { $BASTION_DMZ, $BASTION_APP, $BASTION_DB } tcp dport 22 accept comment "VPN -> Bastion:22"
+
+        # --- Regra 4: Internet -> DMZ, somente porta pública do WAF ---
+        # (ajuste a interface WAN real do host, ex: eth0, se quiser restringir por iif)
+        ip daddr $NET_DMZ tcp dport 8080 accept comment "Internet -> WAF:8080 (publicado como 8443 no host)"
+
+        # --- Bloqueios explícitos (documentação; já cobertos pelo default-deny,
+        #     mas deixados aqui como prova de intenção para o relatório) ---
+        ip saddr $NET_DMZ ip daddr $NET_DB drop comment "DMZ NUNCA fala direto com DB"
+        ip saddr 0.0.0.0/0 ip daddr $DB_IP tcp dport 3306 drop comment "Internet nunca alcança o DB"
+
+        log prefix "nft-FORWARD-DROP: " counter drop
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
