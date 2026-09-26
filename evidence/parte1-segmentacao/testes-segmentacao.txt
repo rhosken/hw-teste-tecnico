@@ -1,0 +1,54 @@
+====================================================================
+TESTE 1: DVWA (APP) -> DB na porta 3306
+Regra esperada: APP -> DB é PERMITIDO (deve conectar)
+====================================================================
+$ docker exec -it dvwa curl -v telnet://db:3306 --connect-timeout 3
+
+* Host db:3306 was resolved.
+* IPv6: (none)
+* IPv4: 172.28.30.40
+*   Trying 172.28.30.40:3306...
+* Connected to db (172.28.30.40) port 3306
+Warning: Binary output can mess up your terminal. Use "--output -" to tell 
+Warning: curl to output it to your terminal anyway, or consider "--output 
+Warning: <FILE>" to save to a file.
+* client returned ERROR on write of 54 bytes
+* closing connection #0
+
+
+====================================================================
+TESTE 2: WAF (DMZ) -> DB direto na porta 3306
+Regra esperada: DMZ -> DB é BLOQUEADO (nunca deve conectar)
+====================================================================
+$ docker exec -it waf curl -v telnet://172.28.30.40:3306 --connect-timeout 3
+
+*   Trying 172.28.30.40:3306...
+* Connection timed out after 3036 milliseconds
+* closing connection #0
+curl: (28) Connection timed out after 3036 milliseconds
+
+
+====================================================================
+TESTE 3: Acesso público via WAF (porta 8443)
+Regra esperada: Internet -> WAF é PERMITIDO (único ponto de entrada)
+====================================================================
+$ curl -I http://localhost:8443
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/1.1 302 Found
+Date: Sat, 26 Sep 2026 12:58:57 GMT
+Content-Type: text/html; charset=UTF-8
+Connection: keep-alive
+X-Powered-By: PHP/8.5.10
+Set-Cookie: security=impossible; path=/; HttpOnly
+Set-Cookie: PHPSESSID=2d3f06c1590ddd1ed849a5dbbba2e8e7; expires=Sun, 27 Sep 2026 12:58:57 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Strict
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: PHPSESSID=e95365bdd23762e8bf2132a6421af0d5; expires=Sun, 27 Sep 2026 12:58:57 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Strict
+Location: login.php
+Server: nginx
+Access-Control-Allow-Headers: *
+
