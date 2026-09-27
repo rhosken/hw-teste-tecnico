@@ -1,0 +1,1 @@
+healthz endpoint: 200 OK sem autenticação, possível bypass de regra WAF

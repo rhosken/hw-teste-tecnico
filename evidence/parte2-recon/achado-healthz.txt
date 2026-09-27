@@ -1,0 +1,55 @@
+====================================================================
+ACHADO: Endpoint /healthz sem autenticação
+====================================================================
+
+--- Ferramenta e comando utilizado (enumeração de diretórios) ---
+$ ffuf -u http://localhost:8443/FUZZ \
+    -w ~/wordlists/common.txt \
+    -mc 200,301,302,403 \
+    -o evidence/parte2-recon/ffuf-dvwa-dirs.json \
+    -of json
+
+--- Wordlist utilizada ---
+SecLists Discovery/Web-Content/common.txt (4.751 palavras)
+
+--- Resultado da varredura (4.752 requisições, 0 erros) ---
+Todos os paths retornaram 403 (bloqueados pelo WAF/ModSecurity),
+EXCETO um: healthz, que retornou 200.
+
+healthz    [Status: 200, Size: 2, Words: 1, Lines: 1, Duration: 19ms]
+
+--- Confirmação manual do achado ---
+$ curl -v http://localhost:8443/healthz
+
+* Host localhost:8443 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:8443...
+* Connected to localhost (::1) port 8443
+> GET /healthz HTTP/1.1
+> Host: localhost:8443
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Date: Sun, 27 Sep 2026 00:59:37 GMT
+< Content-Type: application/octet-stream
+< Content-Length: 2
+< Connection: keep-alive
+< Server: nginx
+< Content-Type: text/plain
+< 
+{ [2 bytes data]
+100     2  100     2    0     0    359      0 --:--:-- --:--:-- --:--:--   400
+* Connection #0 to host localhost left intact
+OK
+
+--- Por que isso é relevante ---
+Endpoint de health check, sem autenticação, respondeu 200 enquanto
+TODOS os outros 4.751 paths testados foram bloqueados pelo WAF (403).
+Isso confirma que o CRS provavelmente tem uma regra de allowlist
+para esse path específico, permitindo bypass do restante das regras.
+Relevante como possível ponto de partida para técnicas de bypass
+na Parte 4 (testar se outros paths com padrão similar escapam).

@@ -1,0 +1,17 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/1.1 200 OK
+Date: Sun, 27 Sep 2026 00:52:18 GMT
+Content-Type: text/html;charset=utf-8
+Connection: keep-alive
+X-Powered-By: PHP/8.5.10
+Set-Cookie: security=impossible; path=/; HttpOnly
+Set-Cookie: PHPSESSID=d9ca2eb837239d288fef0240fc633429; expires=Mon, 28 Sep 2026 00:52:18 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Strict
+Expires: Tue, 23 Jun 2009 12:00:00 GMT
+Cache-Control: no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: PHPSESSID=e4f0289cac189986131ac7553c0f6f35; expires=Mon, 28 Sep 2026 00:52:18 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Strict
+Server: nginx
+Access-Control-Allow-Headers: *
+
