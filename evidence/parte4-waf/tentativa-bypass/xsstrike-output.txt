@@ -1,0 +1,33 @@
+[91m
+	XSStrike [97mv3.1.5
+[0m
+[91m[-][0m WAF detected: [92mAmazon Web Services Web Application Firewall (Amazon)[0m [0m
+[93m[!][0m Fuzzing parameter: name [0m
+[93m[!][0m [92m[passed]  [0m <test [0m
+[93m[!][0m [92m[passed]  [0m <test// [0m
+[93m[!][0m [92m[passed]  [0m <test> [0m
+[93m[!][0m [92m[passed]  [0m <test x> [0m
+[93m[!][0m [92m[passed]  [0m <test x=y [0m
+[93m[!][0m [92m[passed]  [0m <test x=y// [0m
+[93m[!][0m [92m[passed]  [0m <test/oNxX=yYy// [0m
+[93m[!][0m [92m[passed]  [0m <test oNxX=yYy> [0m
+[93m[!][0m [91m[blocked] [0m <test onload=x [0m
+[93m[!][0m [91m[blocked] [0m <test/o%00nload=x [0m
+[93m[!][0m [91m[blocked] [0m <test sRc=xxx [0m
+[93m[!][0m [92m[passed]  [0m <test data=asa [0m
+[93m[!][0m [91m[blocked] [0m <test data=javascript:asa [0m
+[93m[!][0m [91m[blocked] [0m <svg x=y> [0m
+[93m[!][0m [92m[passed]  [0m <details x=y// [0m
+[93m[!][0m [92m[passed]  [0m <a href=x// [0m
+[93m[!][0m [91m[blocked] [0m <emBed x=y> [0m
+[93m[!][0m [91m[blocked] [0m <object x=y// [0m
+[93m[!][0m [91m[blocked] [0m <bGsOund sRc=x> [0m
+[93m[!][0m [91m[blocked] [0m <iSinDEx x=y// [0m
+[93m[!][0m [91m[blocked] [0m <aUdio x=y> [0m
+[93m[!][0m [91m[blocked] [0m <script x=y> [0m
+[93m[!][0m [91m[blocked] [0m <script//src=// [0m
+[93m[!][0m [91m[blocked] [0m ">payload<br/attr=" [0m
+[93m[!][0m [91m[blocked] [0m "-confirm``-" [0m
+[93m[!][0m [91m[blocked] [0m <test ONdBlcLicK=x> [0m
+[93m[!][0m [91m[blocked] [0m <test/oNcoNTeXtMenU=x> [0m
+[93m[!][0m [91m[blocked] [0m <test OndRAgOvEr=x> [0m
