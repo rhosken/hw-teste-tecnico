@@ -1,0 +1,14 @@
+Observação adicional (fora da cadeia de ataque da Parte 3) — bastion
+
+Durante o mapeamento de portas, notei que o bastion continua com SSH
+visível para qualquer host na rede APP, não só para quem vem da VPN
+(containers na mesma rede Docker não passam pelo firewall do host).
+
+Como correção rápida, adicionei uma restrição direto no SSH do
+bastion (Match Address no sshd_config), negando autenticação para
+qualquer origem fora da rede da VPN. Testei a partir do WAF, inclusive
+com a senha correta, e a conexão foi recusada -- confirmado pelo log
+do servidor.
+
+Não é um elo da cadeia de ataque original (Parte 3), então tratei como
+observação extra, não como parte formal do hardening.

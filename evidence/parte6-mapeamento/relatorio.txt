@@ -1,0 +1,37 @@
+Parte 6 — Mapeamento de Portas (antes/depois do hardening)
+
+PONTO 1 — Visão do host (fora do ambiente)
+
+Antes (Parte 2) e depois (hoje), o resultado é idêntico:
+
+    22/tcp   ssh     (SSH nativo da VM, fora do escopo do teste)
+    8443/tcp http    nginx (WAF, único ponto de entrada público)
+
+Sem mudança porque o hardening foi feito em regras de segmentação
+interna (quem fala com quem dentro do ambiente), não na superfície
+externa, que já era mínima desde o início.
+
+PONTO 2 — Visão de dentro da DMZ (WAF comprometido, scan completo -p- em todas as 65535 portas)
+
+Antes e depois, os mesmos hosts visíveis, com as mesmas portas:
+
+    bastion (172.28.20.10)  -> 22/tcp aberta
+    waf     (172.28.20.20)  -> 8080/tcp, 8443/tcp
+    dvwa    (172.28.20.30)  -> 80/tcp
+
+TABELA DE MAPEAMENTO DE PORTAS (estado final)
+
+Host      | Porta | Protocolo | Quem pode acessar          | Justificativa
+----------|-------|-----------|-----------------------------|----------------------------------------
+WAF       | 8443  | TCP       | Internet (qualquer origem) | Único ponto de entrada público
+WAF       | 51820 | UDP       | Internet (qualquer origem) | Porta da VPN, precisa aceitar de fora
+DVWA      | 80    | TCP       | Só o WAF (IP exato /32)     | App nunca deve ser exposta direto
+DB        | 3306  | TCP       | Só o DVWA (IP exato /32)    | Banco nunca deve ser exposto à APP toda
+Bastion   | 22    | TCP       | VPN (via restrição no SSH)  | Acesso administrativo via VPN
+
+PROVA DE CAMINHO BLOQUEADO
+
+Já demonstrado nas Partes 1, 4 e 5:
+  - WAF (DMZ) -> DB direto: bloqueado (timeout), evidence/parte1-segmentacao
+  - app2 dual-homed -> DB, com regra /32: bloqueado, evidence/parte5-hardening
+  - SQLi e XSS via WAF: bloqueados (403), evidence/parte4-waf
