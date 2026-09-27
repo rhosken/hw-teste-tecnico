@@ -34,6 +34,7 @@ table inet filter {
         udp dport 51820 accept
 
         # Loga tudo que cair aqui (deny) para depuração/evidência
+        tcp dport 8443 accept comment "Acesso externo/hairpin ao WAF via porta publicada"
         log prefix "nft-INPUT-DROP: " counter drop
     }
 
@@ -43,10 +44,10 @@ table inet filter {
         ct state established,related accept
 
         # --- Regra 1: DMZ(WAF) -> APP, somente porta da aplicação (80) ---
-        ip saddr $NET_DMZ ip daddr $DVWA_IP tcp dport 80 accept comment "WAF -> DVWA:80"
+        ip saddr $WAF_IP ip daddr $DVWA_IP tcp dport 80 accept comment "WAF -> DVWA:80 (restrito ao IP exato do WAF)"
 
         # --- Regra 2: APP -> DB, somente porta do banco (3306) ---
-        ip saddr $NET_APP ip daddr $DB_IP tcp dport 3306 accept comment "DVWA -> MariaDB:3306"
+        ip saddr $DVWA_IP ip daddr $DB_IP tcp dport 3306 accept comment "DVWA -> MariaDB:3306 (restrito ao IP exato do DVWA)"
 
         # --- Regra 3: Admin (VPN) -> hosts, somente SSH/gestão (22) ---
         ip saddr $NET_VPN ip daddr { $BASTION_DMZ, $BASTION_APP, $BASTION_DB } tcp dport 22 accept comment "VPN -> Bastion:22"

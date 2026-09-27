@@ -1,0 +1,32 @@
+Elo 2 — Restringindo o acesso ao banco de dados
+
+ANTES: testei se qualquer container na rede APP alcança o banco, ou
+só o dvwa. Subi um container de teste (app2) conectado nas duas redes
+(APP e DB, imitando o dvwa) e testei:
+
+    docker exec app2 nc -zv -w3 172.28.30.40 3306
+    -> Connection to 172.28.30.40 3306 port [tcp/mysql] succeeded!
+
+Confirmado: a regra original liberava a rede APP inteira, não só o
+IP do dvwa.
+
+CORREÇÃO: troquei a regra de "libera toda a rede APP" para "libera só
+o IP exato do dvwa" (172.28.20.30/32), e o mesmo na Regra 1 (WAF ->
+DVWA, restrita ao IP exato do WAF):
+
+    # nftables/ruleset.nft, Regra 2
+    - ip saddr $NET_APP ip daddr $DB_IP tcp dport 3306 accept
+    + ip saddr $DVWA_IP ip daddr $DB_IP tcp dport 3306 accept
+
+DEPOIS: com o módulo br_netfilter do kernel ativo (necessário para o
+nftables enxergar tráfego entre bridges do Docker), a regra funcionou
+como esperado:
+
+    docker exec app2 nc -zv -w3 172.28.30.40 3306
+    -> timeout (bloqueado)
+
+Nesse mesmo estado, o acesso à aplicação via 8443 ficou lento (~60s
+para responder, em vez do normal). Desativando o br_netfilter, voltou
+ao normal (0.03s). Deixei o ambiente com br_netfilter desativado, que
+é o estado de operação normal, com a regra /32 aplicada e confirmada
+funcional no teste acima.

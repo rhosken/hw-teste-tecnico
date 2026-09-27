@@ -1,0 +1,4 @@
+=== DEPOIS da correção: app2 (dual-homed) tentando alcançar o banco ===
+
+$ docker exec app2 nc -zv -w3 172.28.30.40 3306
+nc: connect to 172.28.30.40 port 3306 (tcp) timed out: Operation in progress

@@ -1,0 +1,4 @@
+=== ANTES da correção: app2 (container solto na rede APP) alcançando o banco ===
+
+$ docker exec app2 nc -zv -w3 172.28.30.40 3306
+Connection to 172.28.30.40 3306 port [tcp/mysql] succeeded!
