@@ -1,0 +1,5 @@
+wireguard/
+bastion/id_lab
+bastion/id_lab.pub
+bastion/authorized_keys
+*.log

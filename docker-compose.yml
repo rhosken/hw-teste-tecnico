@@ -102,13 +102,15 @@ services:
 
   # --- App vulnerável (APP) ---
   dvwa:
-    image: vulnerables/web-dvwa:latest
+    image: ghcr.io/digininja/dvwa:latest
+    ports:
+      - "8081:80"   # TEMP: acesso direto para baseline da Parte 3 (sem WAF)
     container_name: dvwa
     environment:
-      - MYSQL_HOST=db
-      - MYSQL_USER=dvwa
-      - MYSQL_PASSWORD=dvwa_pass_troque_isto
-      - MYSQL_DATABASE=dvwa
+      - DB_SERVER=db
+      - DB_DATABASE=dvwa
+      - DB_USER=dvwa
+      - DB_PASSWORD=p@ssw0rd
     networks:
       net_app:
         ipv4_address: 172.28.20.30
@@ -124,10 +126,10 @@ services:
     image: mariadb:10.11
     container_name: dvwa-db
     environment:
-      - MYSQL_ROOT_PASSWORD=root_pass_troque_isto
-      - MYSQL_USER=dvwa
-      - MYSQL_PASSWORD=dvwa_pass_troque_isto
+      - MYSQL_ROOT_PASSWORD=root_p@ssw0rd
       - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
     networks:
       net_db:
         ipv4_address: 172.28.30.40
