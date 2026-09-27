@@ -1,0 +1,19 @@
+Elo 1 — Command Injection, agora bloqueado pelo WAF
+
+Mesmo payload do Achado #3 (o que deu o foothold como www-data):
+
+    127.0.0.1 && whoami
+
+Via WAF (porta 8443), resultado: 403 Forbidden. Confirmado via curl:
+
+    curl -D - "http://localhost:8443/vulnerabilities/exec/" \
+      -b 'PHPSESSID=<sessão>; security=low' \
+      --data-urlencode "ip=127.0.0.1 && whoami" \
+      --data-urlencode "Submit=Submit"
+    -> HTTP/1.1 403 Forbidden
+
+O mesmo WAF que já bloqueava SQLi e XSS também cobre Command
+Injection -- não precisou de nenhuma configuração extra, o CRS já vem
+com regras pra esse tipo de ataque (família 932xxx/934xxx). O foothold
+que conseguimos na Parte 3, sem WAF, hoje não seria mais possível
+através desse mesmo vetor.
