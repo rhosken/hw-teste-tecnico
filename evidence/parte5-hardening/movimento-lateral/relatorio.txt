@@ -30,3 +30,39 @@ para responder, em vez do normal). Desativando o br_netfilter, voltou
 ao normal (0.03s). Deixei o ambiente com br_netfilter desativado, que
 é o estado de operação normal, com a regra /32 aplicada e confirmada
 funcional no teste acima.
+
+--- Revisão final: demais regras restritas + padronização ---
+
+Depois de apertar as Regras 1 e 2, revisei o restante do firewall.
+A Regra 4 (Internet -> WAF) também foi restringida ao IP exato do
+WAF, já que só existe um host na DMZ:
+
+    - ip daddr $NET_DMZ tcp dport 8080 accept
+    + ip daddr $WAF_IP tcp dport 8080 accept
+
+A Regra 3 (VPN -> Bastion) foi mantida em /24 de propósito -- clientes
+VPN recebem IP dinamicamente a cada conexão, restringir quebraria a
+VPN para qualquer peer diferente do testado.
+
+As duas regras de bloqueio explícito (DMZ->DB e Internet->DB) também
+foram mantidas em /24: são regras de DROP, não de liberação, então
+usar a subnet inteira só reforça o bloqueio numa faixa maior --
+tecnicamente redundantes com a policy drop padrão da chain, mas
+mantidas como documentação de intenção e evidência formal de que
+esses caminhos foram bloqueados de propósito.
+
+Também padronizei todos os comentários das regras para um formato
+único (ACESSO origem -> destino / DROP origem PARA destino), deixando
+o arquivo mais legível.
+
+Estado final do firewall (chain forward, sem duplicação):
+
+    ip saddr 172.28.20.20 ip daddr 172.28.20.30 tcp dport 80 accept comment "ACESSO WAF -> DVWA"
+    ip saddr 172.28.20.30 ip daddr 172.28.30.40 tcp dport 3306 accept comment "ACESSO DVWA -> MariaDB"
+    ip saddr 172.28.40.0/24 ip daddr { 172.28.10.10, 172.28.20.10, 172.28.30.10 } tcp dport 22 accept comment "ACESSO VPN -> Bastion"
+    ip daddr 172.28.20.20 tcp dport 8080 accept comment "ACESSO INTERNET -> WAF"
+    ip saddr 172.28.10.0/24 ip daddr 172.28.30.0/24 drop comment "DROP DMZ PARA DB"
+    ip saddr 0.0.0.0/0 ip daddr 172.28.30.40 tcp dport 3306 drop comment "DROP INTERNET PARA DB"
+
+Confirmado que a aplicação continua respondendo normalmente após
+todas as mudanças (curl http://localhost:8443/login.php -> 0.025s).

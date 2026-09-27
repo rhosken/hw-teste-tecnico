@@ -103,8 +103,6 @@ services:
   # --- App vulnerável (APP) ---
   dvwa:
     image: ghcr.io/digininja/dvwa:latest
-    ports:
-      - "8081:80"   # TEMP: acesso direto para baseline da Parte 3 (sem WAF)
     container_name: dvwa
     environment:
       - DB_SERVER=db

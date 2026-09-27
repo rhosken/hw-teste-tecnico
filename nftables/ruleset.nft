@@ -44,22 +44,22 @@ table inet filter {
         ct state established,related accept
 
         # --- Regra 1: DMZ(WAF) -> APP, somente porta da aplicação (80) ---
-        ip saddr $WAF_IP ip daddr $DVWA_IP tcp dport 80 accept comment "WAF -> DVWA:80 (restrito ao IP exato do WAF)"
+        ip saddr $WAF_IP ip daddr $DVWA_IP tcp dport 80 accept comment "ACESSO WAF -> DVWA"
 
         # --- Regra 2: APP -> DB, somente porta do banco (3306) ---
-        ip saddr $DVWA_IP ip daddr $DB_IP tcp dport 3306 accept comment "DVWA -> MariaDB:3306 (restrito ao IP exato do DVWA)"
+        ip saddr $DVWA_IP ip daddr $DB_IP tcp dport 3306 accept comment "ACESSO DVWA -> MariaDB"
 
         # --- Regra 3: Admin (VPN) -> hosts, somente SSH/gestão (22) ---
-        ip saddr $NET_VPN ip daddr { $BASTION_DMZ, $BASTION_APP, $BASTION_DB } tcp dport 22 accept comment "VPN -> Bastion:22"
+        ip saddr $NET_VPN ip daddr { $BASTION_DMZ, $BASTION_APP, $BASTION_DB } tcp dport 22 accept comment "ACESSO VPN -> Bastion"
 
         # --- Regra 4: Internet -> DMZ, somente porta pública do WAF ---
         # (ajuste a interface WAN real do host, ex: eth0, se quiser restringir por iif)
-        ip daddr $NET_DMZ tcp dport 8080 accept comment "Internet -> WAF:8080 (publicado como 8443 no host)"
+        ip daddr $WAF_IP tcp dport 8080 accept comment "ACESSO INTERNET -> WAF"
 
         # --- Bloqueios explícitos (documentação; já cobertos pelo default-deny,
         #     mas deixados aqui como prova de intenção para o relatório) ---
-        ip saddr $NET_DMZ ip daddr $NET_DB drop comment "DMZ NUNCA fala direto com DB"
-        ip saddr 0.0.0.0/0 ip daddr $DB_IP tcp dport 3306 drop comment "Internet nunca alcança o DB"
+        ip saddr $NET_DMZ ip daddr $NET_DB drop comment "DROP DMZ PARA DB"
+        ip saddr 0.0.0.0/0 ip daddr $DB_IP tcp dport 3306 drop comment "DROP INTERNET PARA DB"
 
         log prefix "nft-FORWARD-DROP: " counter drop
     }
