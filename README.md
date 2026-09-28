@@ -43,18 +43,18 @@ Achados de recon:
 Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração de dados. Todos os relatórios em [evidence/parte3-exploitation/](evidence/parte3-exploitation/).
 
 ### Achado #1 — SQL Injection ([achado-1-sqli/relatorio.txt](evidence/parte3-exploitation/achado-1-sqli/relatorio.txt))
-- Payload `1' OR '1'='1` no módulo SQL Injection vazou a tabela `users` inteira (5 registros)
+- Payload `1' OR '1'='1` no módulo SQL Injection vazou a tabela `users` inteira (5 registros). Print: [sqli.png](evidence/parte3-exploitation/achado-1-sqli/sqli.png)
 
 ### Achado #2 — Reflected XSS ([achado-2-xss/relatorio.txt](evidence/parte3-exploitation/achado-2-xss/relatorio.txt))
-- Payload `<script>alert('XSS')</script>` executado sem encoding no módulo XSS Reflected
+- Payload `<script>alert('XSS')</script>` executado sem encoding no módulo XSS Reflected. Print: [xss.png](evidence/parte3-exploitation/achado-2-xss/xss.png)
 
 ### Achado #3 — Command Injection / Foothold ([achado-3-cmdi/relatorio.txt](evidence/parte3-exploitation/achado-3-cmdi/relatorio.txt))
 - Payload `127.0.0.1 && whoami` no módulo Command Injection
-- Execução confirmada como `www-data` (uid=33), dentro do container `dvwa`
+- Execução confirmada como `www-data` (uid=33), dentro do container `dvwa`. Print: [cmdi-whoami.png](evidence/parte3-exploitation/achado-3-cmdi/cmdi-whoami.png)
 
 ### Movimento lateral ([movimento-lateral/relatorio.txt](evidence/parte3-exploitation/movimento-lateral/relatorio.txt))
 - A partir do foothold em `dvwa`, confirmado alcance de rede até o banco (`nc -zv db 3306`)
-- Reproduzido via Command Injection real: `127.0.0.1 && nc -zv db 3306 2>&1`
+- Reproduzido via Command Injection real: `127.0.0.1 && nc -zv db 3306 2>&1`. Print: [cmdi-netcat.png](evidence/parte3-exploitation/movimento-lateral/cmdi-netcat.png)
 
 ### Exfiltração ([exfiltracao/relatorio.txt](evidence/parte3-exploitation/exfiltracao/relatorio.txt))
 - `UNION SELECT user, password FROM users` extraiu usuário e hash de senha de todas as 5 contas
