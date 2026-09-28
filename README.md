@@ -45,9 +45,11 @@ Achados de recon:
 Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração de dados. Todos os relatórios em [evidence/parte3-exploitation/](evidence/parte3-exploitation/).
 
 ### Achado #1 — SQL Injection ([achado-1-sqli/relatorio.txt](evidence/parte3-exploitation/achado-1-sqli/relatorio.txt))
+- **Severidade:** 9.8 CRITICAL (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
 - Payload `1' OR '1'='1` no módulo SQL Injection vazou a tabela `users` inteira (5 registros). Print: [sqli.png](evidence/parte3-exploitation/achado-1-sqli/sqli.png)
 
 ### Achado #2 — Reflected XSS ([achado-2-xss/relatorio.txt](evidence/parte3-exploitation/achado-2-xss/relatorio.txt))
+- **Severidade:** 6.1 MEDIUM (AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)
 - Payload `<script>alert('XSS')</script>` executado sem encoding no módulo XSS Reflected. Print: [xss.png](evidence/parte3-exploitation/achado-2-xss/xss.png)
 
 ### Achado #3 — Command Injection / Foothold ([achado-3-cmdi/relatorio.txt](evidence/parte3-exploitation/achado-3-cmdi/relatorio.txt))
