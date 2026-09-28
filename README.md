@@ -57,7 +57,7 @@ Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração d
 - Reproduzido via Command Injection real: `127.0.0.1 && nc -zv db 3306 2>&1`. Print: [cmdi-netcat.png](evidence/parte3-exploitation/movimento-lateral/cmdi-netcat.png)
 
 ### Exfiltração ([exfiltracao/relatorio.txt](evidence/parte3-exploitation/exfiltracao/relatorio.txt))
-- `UNION SELECT user, password FROM users` extraiu usuário e hash de senha de todas as 5 contas
+- `UNION SELECT user, password FROM users` extraiu usuário e hash de senha de todas as 5 contas. Print: [sqli-exfiltracao.png](evidence/parte3-exploitation/exfiltracao/sqli-exfiltracao.png)
 - Hashes MD5 ([hashes.txt](evidence/parte3-exploitation/exfiltracao/hashes.txt)) quebrados usando [hashcat](https://hashcat.net/wiki/doku.php?id=hashcat) + [wordlist pública](https://github.com/danielmiessler/SecLists/blob/master/Passwords/Leaked-Databases/rockyou-75.txt) em menos de 3 segundos. Senhas quebradas em [senhas-quebradas.txt](evidence/parte3-exploitation/exfiltracao/senhas-quebradas.txt)
 
 ### Cadeia completa (kill chain)
