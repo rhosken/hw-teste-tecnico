@@ -76,10 +76,9 @@ Resumo completo em linguagem simples com todos os comandos: [resumo-simples.txt]
 
 Testado em 5 frentes:
 1. 8 técnicas manuais de ofuscação em SQLi (comentários, encoding duplo, parameter pollution, etc.)
-2. sqlmap com tamper scripts — 8.059 requisições, todas bloqueadas
+2. [sqlmap](https://github.com/sqlmapproject/sqlmap) com tamper scripts — 8.059 requisições, todas bloqueadas. Resultado: [sqlmap-output.txt](evidence/parte4-waf/tentativa-bypass/sqlmap-output.txt)
 3. Troca de vetor (Command Injection, File Inclusion, XSS DOM/Stored)
-4. XSStrike com fuzzer — identificou tags que passavam isoladamente, mas nenhuma combinação weaponizada funcionou
-5. Pesquisa de bypass documentado publicamente (upload `.pht`) — técnica real e histórica, mas já corrigida na versão do CRS usada (4.29.0)
+4. [XSStrike](https://github.com/s0md3v/XSStrike) com fuzzer — identificou tags que passavam isoladamente, mas nenhuma combinação weaponizada funcionou. Resultado: [xsstrike-output.txt](evidence/parte4-waf/tentativa-bypass/xsstrike-output.txt)
 
 **Conclusão:** nenhum bypass encontrado após tentativa extensa e sistemática, incluindo duas ferramentas automatizadas dedicadas a isso.
 
