@@ -80,7 +80,7 @@ Testado em 5 frentes:
 3. Troca de vetor (Command Injection, File Inclusion, XSS DOM/Stored)
 4. [XSStrike](https://github.com/s0md3v/XSStrike) com fuzzer — identificou tags que passavam isoladamente, mas nenhuma combinação weaponizada funcionou. Resultado: [xsstrike-output.txt](evidence/parte4-waf/tentativa-bypass/xsstrike-output.txt)
 
-**Conclusão:** nenhum bypass encontrado após tentativa extensa e sistemática, incluindo duas ferramentas automatizadas dedicadas a isso.
+**Conclusão:** nenhum bypass encontrado após configuração do WAF.
 
 ## 5. Hardening — Antes/Depois
 
@@ -91,7 +91,7 @@ Evidências em [evidence/parte5-hardening/](evidence/parte5-hardening/).
 | Command Injection | WAF bloqueia (regras 932xxx) | [cmdi/relatorio.txt](evidence/parte5-hardening/cmdi/relatorio.txt) |
 | Movimento lateral APP->DB | Regra de firewall restrita de subnet inteira para IP exato (/32) | [movimento-lateral/relatorio.txt](evidence/parte3-exploitation/movimento-lateral/relatorio.txt) |
 
-Testei a hipótese com um container solto (`app2`) antes e depois da correção. Além das Regras 1 e 2, a Regra 4 (Internet->WAF) também foi restringida a IP exato. A Regra 3 (VPN->Bastion) foi mantida em subnet, já que peers de VPN recebem IP dinâmico.
+Testei a hipótese com um container novo (`app2`) antes e depois da correção. Além das Regras 1 e 2, a Regra 4 (Internet->WAF) também foi restringida a IP exato. A Regra 3 (VPN->Bastion) foi mantida em subnet, já que peers de VPN recebem IP dinâmico. Todo o hardening do firewall pode ser vista no link [movimento-lateral/relatorio.txt](evidence/parte5-hardening/movimento-lateral/relatorio.txt)
 
 ## 6. Mapeamento de Portas (Final)
 
