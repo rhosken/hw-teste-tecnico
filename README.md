@@ -22,11 +22,11 @@ Segmentação em duas camadas:
 1. Redes Docker separadas (isolamento nativo de bridge)
 2. nftables no host, com política default-deny e liberações explícitas por IP exato (/32)
 
-Ruleset completo: `nftables/ruleset.nft`
+Ruleset completo: [nftables/ruleset.nft](nftables/ruleset.nft)
 
 ## 2. Mapa da Superfície de Ataque
 
-Recon feito a partir de dois pontos (ver `evidence/parte2-recon/`):
+Recon feito a partir de dois pontos (ver [evidence/parte2-recon/](evidence/parte2-recon/)):
 
 | Ponto de origem | O que é visível | Por que interessa a um atacante |
 |---|---|---|
@@ -34,31 +34,31 @@ Recon feito a partir de dois pontos (ver `evidence/parte2-recon/`):
 | Dentro da DMZ (WAF comprometido) | bastion:22, dvwa:80, waf:8080/8443 | Mapa completo da rede interna, incluindo achado do bastion exposto (ver seção 5) |
 
 Achados de recon:
-- `evidence/parte2-recon/nmap-host-fullscan.txt` — scan completo do host
-- `evidence/parte2-recon/nmap-dmz-to-app.txt` — scan de dentro da DMZ
-- `evidence/parte2-recon/achado-healthz.txt` — endpoint `/healthz` sem autenticação, único a passar em meio a 4.751 tentativas de enumeração de diretórios (ffuf)
+- [evidence/parte2-recon/nmap-host-fullscan.txt](evidence/parte2-recon/nmap-host-fullscan.txt) — scan completo do host
+- [evidence/parte2-recon/nmap-dmz-to-app.txt](evidence/parte2-recon/nmap-dmz-to-app.txt) — scan de dentro da DMZ
+- [evidence/parte2-recon/achado-healthz.txt](evidence/parte2-recon/achado-healthz.txt) — endpoint `/healthz` sem autenticação, único a passar em meio a 4.751 tentativas de enumeração de diretórios (ffuf)
 
 ## 3. Relatório de Pentest — Cadeia de Ataque
 
-Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração de dados. Todos os relatórios em `evidence/parte3-exploitation/`.
+Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração de dados. Todos os relatórios em [evidence/parte3-exploitation/](evidence/parte3-exploitation/).
 
-### Achado #1 — SQL Injection (`achado-1-sqli/relatorio.txt`)
+### Achado #1 — SQL Injection ([achado-1-sqli/relatorio.txt](evidence/parte3-exploitation/achado-1-sqli/relatorio.txt))
 - **Severidade:** 9.8 CRITICAL
 - Payload `1' OR '1'='1` no módulo SQL Injection vazou a tabela `users` inteira (5 registros)
 
-### Achado #2 — Reflected XSS (`achado-2-xss/relatorio.txt`)
+### Achado #2 — Reflected XSS ([achado-2-xss/relatorio.txt](evidence/parte3-exploitation/achado-2-xss/relatorio.txt))
 - **Severidade:** 6.1 MEDIUM
 - Payload `<script>alert('XSS')</script>` executado sem encoding no módulo XSS Reflected
 
-### Achado #3 — Command Injection / Foothold (`achado-3-cmdi/relatorio.txt`)
+### Achado #3 — Command Injection / Foothold ([achado-3-cmdi/relatorio.txt](evidence/parte3-exploitation/achado-3-cmdi/relatorio.txt))
 - Payload `127.0.0.1 && whoami` no módulo Command Injection
 - Execução confirmada como `www-data` (uid=33), dentro do container `dvwa`
 
-### Movimento lateral (`movimento-lateral/relatorio.txt`)
+### Movimento lateral ([movimento-lateral/relatorio.txt](evidence/parte3-exploitation/movimento-lateral/relatorio.txt))
 - A partir do foothold em `dvwa`, confirmado alcance de rede até o banco (`nc -zv db 3306`)
 - Reproduzido via Command Injection real: `127.0.0.1 && nc -zv db 3306 2>&1`
 
-### Exfiltração (`exfiltracao/relatorio.txt`)
+### Exfiltração ([exfiltracao/relatorio.txt](evidence/parte3-exploitation/exfiltracao/relatorio.txt))
 - `UNION SELECT user, password FROM users` extraiu usuário e hash de senha de todas as 5 contas
 - Hashes MD5 sem salt quebrados com hashcat + wordlist pública: 4/4 em menos de 3 segundos (`password`, `abc123`, `charley`, `letmein`)
 
@@ -67,14 +67,14 @@ Recon (ffuf/nmap) -> SQLi (foothold via dados) -> Command Injection (shell como 
 
 ## 4. WAF — Bloqueio, Bypass e Correção
 
-Evidências em `evidence/parte4-waf/`.
+Evidências em [evidence/parte4-waf/](evidence/parte4-waf/).
 
 ### Bloqueios confirmados
-- SQLi: 403, regra ModSecurity 942100 (libinjection), score 5 — `bloqueio-sqli/relatorio.txt`
-- XSS: 403, 4 regras simultâneas (941100/941110/941160/941390), score 20 — `bloqueio-xss/relatorio.txt`
+- SQLi: 403, regra ModSecurity 942100 (libinjection), score 5 — [bloqueio-sqli/relatorio.txt](evidence/parte4-waf/bloqueio-sqli/relatorio.txt)
+- XSS: 403, 4 regras simultâneas (941100/941110/941160/941390), score 20 — [bloqueio-xss/relatorio.txt](evidence/parte4-waf/bloqueio-xss/relatorio.txt)
 
-### Tentativa de bypass (`tentativa-bypass/`)
-Resumo completo em linguagem simples com todos os comandos: `resumo-simples.txt`
+### Tentativa de bypass ([tentativa-bypass/](evidence/parte4-waf/tentativa-bypass/))
+Resumo completo em linguagem simples com todos os comandos: [resumo-simples.txt](evidence/parte4-waf/tentativa-bypass/resumo-simples.txt)
 
 Testado em 5 frentes:
 1. 8 técnicas manuais de ofuscação em SQLi (comentários, encoding duplo, parameter pollution, etc.)
@@ -87,18 +87,18 @@ Testado em 5 frentes:
 
 ## 5. Hardening — Antes/Depois
 
-Evidências em `evidence/parte5-hardening/`.
+Evidências em [evidence/parte5-hardening/](evidence/parte5-hardening/).
 
 | Elo | Mitigação aplicada | Evidência |
 |---|---|---|
-| Command Injection | WAF bloqueia (regras 932xxx) | `cmdi/relatorio.txt` |
-| Movimento lateral APP->DB | Regra de firewall restrita de subnet inteira para IP exato (/32) | `movimento-lateral/relatorio.txt` |
+| Command Injection | WAF bloqueia (regras 932xxx) | [cmdi/relatorio.txt](evidence/parte5-hardening/cmdi/relatorio.txt) |
+| Movimento lateral APP->DB | Regra de firewall restrita de subnet inteira para IP exato (/32) | [movimento-lateral/relatorio.txt](evidence/parte3-exploitation/movimento-lateral/relatorio.txt) |
 
 Testei a hipótese com um container solto (`app2`) antes e depois da correção. Além das Regras 1 e 2, a Regra 4 (Internet->WAF) também foi restringida a IP exato. A Regra 3 (VPN->Bastion) foi mantida em subnet, já que peers de VPN recebem IP dinâmico.
 
 ## 6. Mapeamento de Portas (Final)
 
-Relatório completo com scans antes/depois (portas completas, -p-) em `evidence/parte6-mapeamento/relatorio.txt`.
+Relatório completo com scans antes/depois (portas completas, -p-) em [evidence/parte6-mapeamento/relatorio.txt](evidence/parte6-mapeamento/relatorio.txt).
 
 | Host | Porta | Protocolo | Quem pode acessar | Justificativa |
 |---|---|---|---|---|
@@ -108,9 +108,9 @@ Relatório completo com scans antes/depois (portas completas, -p-) em `evidence/
 | DB | 3306 | TCP | Só o DVWA (IP exato /32) | Banco nunca exposto à APP toda |
 | Bastion | 22 | TCP | VPN (via restrição no SSH) | Acesso administrativo |
 
-**Prova de bloqueio:** DMZ->DB recusado (timeout), confirmado em `evidence/parte1-segmentacao/` e reconfirmado com `app2` na Parte 5.
+**Prova de bloqueio:** DMZ->DB recusado (timeout), confirmado em [evidence/parte1-segmentacao/](evidence/parte1-segmentacao/) e reconfirmado com `app2` na Parte 5.
 
-**Achado extra (fora da cadeia da Parte 3):** o bastion continuava com SSH visível para qualquer host na rede APP, mesmo devendo ser só-VPN. Corrigido restringindo a autenticação diretamente no `sshd_config` do bastion (`Match Address`), testado e confirmado com senha correta recusada fora da VPN (`evidence/parte6-mapeamento/bastion-hardening/`).
+**Achado extra (fora da cadeia da Parte 3):** o bastion continuava com SSH visível para qualquer host na rede APP, mesmo devendo ser só-VPN. Corrigido restringindo a autenticação diretamente no `sshd_config` do bastion (`Match Address`), testado e confirmado com senha correta recusada fora da VPN ([evidence/parte6-mapeamento/bastion-hardening/](evidence/parte6-mapeamento/bastion-hardening/)).
 
 ## Trade-offs, limitações e como escalaria para a infra real
 
