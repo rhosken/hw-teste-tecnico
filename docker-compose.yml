@@ -1,15 +1,4 @@
 version: "3.8"
-
-# Topologia:
-#   Internet (host) -> wireguard (VPN gateway) -> bastion (admin SSH)
-#                    -> waf (DMZ, 172.28.10.0/24) -> dvwa (APP, 172.28.20.0/24) -> mariadb (DB, 172.28.30.0/24)
-#
-# Segmentação real é feita em duas camadas:
-#   1) Redes docker separadas (isolamento L3 nativo do compose)
-#   2) nftables no HOST, com default-deny e allow explícito por sub-rede (ver nftables/ruleset.nft)
-#
-# O host precisa ter os bridges com IP de gateway fixo para o nftables referenciar as subnets.
-
 networks:
   net_vpn:
     driver: bridge
@@ -132,7 +121,3 @@ services:
       net_db:
         ipv4_address: 172.28.30.40
     restart: unless-stopped
-    # Sem net_app aqui de propósito: só quem já está na net_db alcança a base.
-    # A "ponte" DB<->APP é feita pelo container dvwa, que tem pé nas duas redes
-    # (padrão comum quando a app precisa falar com o banco; o isolamento real
-    # de "quem pode iniciar conexão" é garantido pelo nftables, não só pela topologia).
