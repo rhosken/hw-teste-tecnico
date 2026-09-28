@@ -118,6 +118,7 @@ Relatório completo com scans antes/depois (portas completas, -p-) em [evidence/
 - **Ambiente de laboratório vs. produção:** todo o ambiente roda em containers Docker dentro de uma única VM. Em produção, cada segmento seria uma subnet real (AWS VPC), com Security Groups e NACLs no lugar do nftables, e um WAF gerenciado (AWS WAF, Cloudflare) na borda em vez do ModSecurity self-hosted.
 - **Bastion multi-rede:** o desenho atual prioriza simplicidade de laboratório; em produção, o ideal seria um bastion dedicado só à rede de management, acessando os demais segmentos via VPN peering.
 - **br_netfilter e ambiente Multipass:** identifiquei que esse módulo do kernel, necessário para o nftables inspecionar tráfego entre bridges Docker, causa instabilidade nesse ambiente específico (VM aninhada). Não afeta um servidor Linux real/dedicado.
+- **Egress filtering (chain OUTPUT):** a chain OUTPUT do host está com policy accept — sem restrição de saída. Tentei corrigir isso (restringindo a DNS + conexões já estabelecidas), mas a mudança causou lentidão severa (>130s de resposta) nesse ambiente específico, provavelmente pela mesma instabilidade de rede aninhada mencionada acima. Revertido por segurança. Em produção, eu aplicaria egress filtering real: bloquear saída direta de dentro do segmento DB, permitir saída de pacotes só para repositórios/registries conhecidos, e usar um proxy de saída com allowlist para qualquer tráfego que precise sair para a internet.
 
 ## Ferramental ofensivo utilizado
 
