@@ -4,90 +4,127 @@
 
 ```bash
 git clone <seu-repo>
-cd hw-lab
+cd hw-teste-tecnico
 ./up.sh
 ```
 
-Requisitos: Docker + Docker Compose v2, `nft` (nftables), `sudo` para aplicar o firewall no host.
+Requisitos: Linux (nativo ou VM), Docker + Docker Compose v2, nftables, sudo.
+Desenvolvido em Ubuntu 24.04 via Multipass, para desenvolvimento em macOS.
 
 ## 1. Topologia e Segmentação
 
-<!-- TODO: cole aqui o diagrama (pode ser o ASCII do enunciado adaptado, ou uma imagem em /evidence) -->
+Fluxo de tráfego:
 
-Segmentos:
-- **VPN** (172.28.40.0/24) — único ponto de entrada administrativa (WireGuard)
-- **DMZ** (172.28.10.0/24) — WAF/reverse proxy, único ponto de entrada público
-- **APP** (172.28.20.0/24) — DVWA, só recebe do WAF
-- **DB** (172.28.30.0/24) — MariaDB, só recebe da APP
+- Internet -> porta 8443/tcp -> WAF (DMZ, 172.28.10.0/24) -> DVWA (APP, 172.28.20.0/24) -> MariaDB (DB, 172.28.30.0/24)
+- Internet -> porta 51820/udp -> WireGuard (VPN, 172.28.40.0/24) -> Bastion (admin, presente nas 4 redes)
 
-Isolamento em duas camadas: redes Docker separadas (L3 nativo) + nftables no host com
-política default-deny e allow explícito (`nftables/ruleset.nft`).
+Segmentação em duas camadas:
+1. Redes Docker separadas (isolamento nativo de bridge)
+2. nftables no host, com política default-deny e liberações explícitas por IP exato (/32)
+
+Ruleset completo: `nftables/ruleset.nft`
 
 ## 2. Mapa da Superfície de Ataque
 
-<!-- TODO Parte 2: recon a partir de host/internet, VPN e de dentro da DMZ.
-     nmap -sV -p- a partir de cada ponto; ffuf/gobuster no alvo; anexar saídas em /evidence/recon -->
+Recon feito a partir de dois pontos (ver `evidence/parte2-recon/`):
 
 | Ponto de origem | O que é visível | Por que interessa a um atacante |
 |---|---|---|
-| Internet (host) | porta 8443 (WAF) | único ponto de entrada; superfície pública real |
-| Dentro da VPN | 22 (bastion) | admin — alvo de movimento lateral pós-comprometimento |
-| Dentro da DMZ | 80/tcp da APP | ponto de pivô se o WAF for contornado |
+| Host/Internet | Só porta 8443 (WAF) | Único ponto de entrada real |
+| Dentro da DMZ (WAF comprometido) | bastion:22, dvwa:80, waf:8080/8443 | Mapa completo da rede interna, incluindo achado do bastion exposto (ver seção 5) |
+
+Achados de recon:
+- `evidence/parte2-recon/nmap-host-fullscan.txt` — scan completo do host
+- `evidence/parte2-recon/nmap-dmz-to-app.txt` — scan de dentro da DMZ
+- `evidence/parte2-recon/achado-healthz.txt` — endpoint `/healthz` sem autenticação, único a passar em meio a 4.751 tentativas de enumeração de diretórios (ffuf)
 
 ## 3. Relatório de Pentest — Cadeia de Ataque
 
-<!-- TODO Parte 3: para cada achado, siga este template -->
+Três vulnerabilidades exploradas, foothold, movimento lateral e exfiltração de dados. Todos os relatórios em `evidence/parte3-exploitation/`.
 
-### Achado #1 — <nome, ex: SQL Injection em login.php>
-- **Severidade (CVSS aprox.):**
-- **Passos de reprodução:**
-- **Evidência:** ver `/evidence/exploitation/achado-1/`
-- **Impacto:**
+### Achado #1 — SQL Injection (`achado-1-sqli/relatorio.txt`)
+- **Severidade:** 9.8 CRITICAL
+- Payload `1' OR '1'='1` no módulo SQL Injection vazou a tabela `users` inteira (5 registros)
 
-### Achado #2 — ...
+### Achado #2 — Reflected XSS (`achado-2-xss/relatorio.txt`)
+- **Severidade:** 6.1 MEDIUM
+- Payload `<script>alert('XSS')</script>` executado sem encoding no módulo XSS Reflected
+
+### Achado #3 — Command Injection / Foothold (`achado-3-cmdi/relatorio.txt`)
+- Payload `127.0.0.1 && whoami` no módulo Command Injection
+- Execução confirmada como `www-data` (uid=33), dentro do container `dvwa`
+
+### Movimento lateral (`movimento-lateral/relatorio.txt`)
+- A partir do foothold em `dvwa`, confirmado alcance de rede até o banco (`nc -zv db 3306`)
+- Reproduzido via Command Injection real: `127.0.0.1 && nc -zv db 3306 2>&1`
+
+### Exfiltração (`exfiltracao/relatorio.txt`)
+- `UNION SELECT user, password FROM users` extraiu usuário e hash de senha de todas as 5 contas
+- Hashes MD5 sem salt quebrados com hashcat + wordlist pública: 4/4 em menos de 3 segundos (`password`, `abc123`, `charley`, `letmein`)
 
 ### Cadeia completa (kill chain)
-1. Recon → 2. Exploração inicial (foothold DMZ) → 3. Movimento lateral (DMZ→APP→DB) → 4. Exfiltração
+Recon (ffuf/nmap) -> SQLi (foothold via dados) -> Command Injection (shell como www-data) -> Movimento lateral (APP -> DB via nc) -> Exfiltração (UNION SELECT + quebra de hash)
 
 ## 4. WAF — Bloqueio, Bypass e Correção
 
-<!-- TODO Parte 4 -->
-- Requisição bloqueada (403) + log do ModSecurity: `/evidence/waf/blocked/`
-- Tentativa de bypass (encoding/ofuscação) que passou: `/evidence/waf/bypass/`
-- Regra customizada que fecha o bypass: `waf/custom-rules/`
-- Requisição legítima continuando a passar após o ajuste: `/evidence/waf/legit-after-fix/`
+Evidências em `evidence/parte4-waf/`.
+
+### Bloqueios confirmados
+- SQLi: 403, regra ModSecurity 942100 (libinjection), score 5 — `bloqueio-sqli/relatorio.txt`
+- XSS: 403, 4 regras simultâneas (941100/941110/941160/941390), score 20 — `bloqueio-xss/relatorio.txt`
+
+### Tentativa de bypass (`tentativa-bypass/`)
+Resumo completo em linguagem simples com todos os comandos: `resumo-simples.txt`
+
+Testado em 5 frentes:
+1. 8 técnicas manuais de ofuscação em SQLi (comentários, encoding duplo, parameter pollution, etc.)
+2. sqlmap com tamper scripts — 8.059 requisições, todas bloqueadas
+3. Troca de vetor (Command Injection, File Inclusion, XSS DOM/Stored)
+4. XSStrike com fuzzer — identificou tags que passavam isoladamente, mas nenhuma combinação weaponizada funcionou
+5. Pesquisa de bypass documentado publicamente (upload `.pht`) — técnica real e histórica, mas já corrigida na versão do CRS usada (4.29.0)
+
+**Conclusão:** nenhum bypass encontrado após tentativa extensa e sistemática, incluindo duas ferramentas automatizadas dedicadas a isso.
 
 ## 5. Hardening — Antes/Depois
 
-<!-- TODO Parte 5: uma linha por elo da cadeia fechado -->
+Evidências em `evidence/parte5-hardening/`.
 
-| Elo da cadeia | Mitigação aplicada | Evidência antes | Evidência depois |
-|---|---|---|---|
-| ex: SQLi | Patch de sanitização + regra WAF | `/evidence/before/` | `/evidence/after/` |
+| Elo | Mitigação aplicada | Evidência |
+|---|---|---|
+| Command Injection | WAF bloqueia (regras 932xxx) | `cmdi/relatorio.txt` |
+| Movimento lateral APP->DB | Regra de firewall restrita de subnet inteira para IP exato (/32) | `movimento-lateral/relatorio.txt` |
+
+Testei a hipótese com um container solto (`app2`) antes e depois da correção. Além das Regras 1 e 2, a Regra 4 (Internet->WAF) também foi restringida a IP exato. A Regra 3 (VPN->Bastion) foi mantida em subnet, já que peers de VPN recebem IP dinâmico.
 
 ## 6. Mapeamento de Portas (Final)
 
-<!-- TODO Parte 6: nmap antes/depois, tabela completa -->
+Relatório completo com scans antes/depois (portas completas, -p-) em `evidence/parte6-mapeamento/relatorio.txt`.
 
 | Host | Porta | Protocolo | Quem pode acessar | Justificativa |
 |---|---|---|---|---|
-| WAF (DMZ) | 8080/8443 | TCP | Internet | único ponto público |
-| DVWA (APP) | 80 | TCP | Só DMZ (WAF) | nunca exposto direto |
-| MariaDB (DB) | 3306 | TCP | Só APP | nunca DMZ, nunca internet |
-| Bastion | 22 | TCP | Só VPN | admin exclusivo via túnel |
+| WAF | 8443 | TCP | Internet (qualquer origem) | Único ponto de entrada público |
+| WAF | 51820 | UDP | Internet (qualquer origem) | Porta da VPN |
+| DVWA | 80 | TCP | Só o WAF (IP exato /32) | App nunca exposta direto |
+| DB | 3306 | TCP | Só o DVWA (IP exato /32) | Banco nunca exposto à APP toda |
+| Bastion | 22 | TCP | VPN (via restrição no SSH) | Acesso administrativo |
 
-Prova de bloqueio: `DMZ -> DB` recusado — ver `/evidence/final/dmz-to-db-blocked.txt`
+**Prova de bloqueio:** DMZ->DB recusado (timeout), confirmado em `evidence/parte1-segmentacao/` e reconfirmado com `app2` na Parte 5.
+
+**Achado extra (fora da cadeia da Parte 3):** o bastion continuava com SSH visível para qualquer host na rede APP, mesmo devendo ser só-VPN. Corrigido restringindo a autenticação diretamente no `sshd_config` do bastion (`Match Address`), testado e confirmado com senha correta recusada fora da VPN (`evidence/parte6-mapeamento/bastion-hardening/`).
 
 ## Trade-offs, limitações e como escalaria para a infra real
 
-<!-- TODO: discutir mapeamento para AWS (Security Groups/NACL), Cloudflare na borda,
-     Proxmox na virtualização, OVH/Contabo -->
+- **Ambiente de laboratório vs. produção:** todo o ambiente roda em containers Docker dentro de uma única VM. Em produção, cada segmento seria uma subnet real (AWS VPC), com Security Groups e NACLs no lugar do nftables, e um WAF gerenciado (AWS WAF, Cloudflare) na borda em vez do ModSecurity self-hosted.
+- **Bastion multi-rede:** o desenho atual prioriza simplicidade de laboratório; em produção, o ideal seria um bastion dedicado só à rede de management, acessando os demais segmentos via VPN peering.
+- **br_netfilter e ambiente Multipass:** identifiquei que esse módulo do kernel, necessário para o nftables inspecionar tráfego entre bridges Docker, causa instabilidade nesse ambiente específico (VM aninhada). Não afeta um servidor Linux real/dedicado.
 
 ## Ferramental ofensivo utilizado
 
 | Ferramenta | Uso no fluxo |
 |---|---|
 | nmap | Descoberta de hosts/portas/serviços |
-| ffuf / gobuster | Enumeração de diretórios/endpoints |
-| sqlmap | Exploração automatizada de SQLi |
-| curl / netcat | Testes manuais e exfiltração |
+| ffuf | Enumeração de diretórios/endpoints |
+| sqlmap | Exploração e tentativa de bypass automatizado de SQLi |
+| XSStrike | Fuzzing e tentativa de bypass de XSS |
+| hashcat | Quebra de hashes MD5 extraídos via SQLi |
+| curl / netcat | Testes manuais, reprodução de payloads, testes de conectividade |
