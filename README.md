@@ -13,6 +13,8 @@ Desenvolvido em Ubuntu 24.04 via Multipass, para desenvolvimento em macOS.
 
 ## 1. Topologia e Segmentação
 
+![Topologia da rede](topologia-hw-lab.jpg)
+
 Fluxo de tráfego:
 
 - Internet -> porta 8443/tcp -> WAF (DMZ, 172.28.10.0/24) -> DVWA (APP, 172.28.20.0/24) -> MariaDB (DB, 172.28.30.0/24)
