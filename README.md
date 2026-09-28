@@ -104,7 +104,7 @@ Relatório completo com scans antes/depois (portas completas, -p-) em [evidence/
 | Host | Porta | Protocolo | Quem pode acessar | Justificativa |
 |---|---|---|---|---|
 | WAF | 8443 | TCP | Internet (qualquer origem) | Único ponto de entrada público |
-| WAF | 51820 | UDP | Internet (qualquer origem) | Porta da VPN |
+| VPN | 51820 | UDP | Internet (qualquer origem) | Porta da VPN |
 | DVWA | 80 | TCP | Só o WAF (IP exato /32) | App nunca exposta direto |
 | DB | 3306 | TCP | Só o DVWA (IP exato /32) | Banco nunca exposto à APP toda |
 | Bastion | 22 | TCP | VPN (via restrição no SSH) | Acesso administrativo |
